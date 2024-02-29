@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "es2022",
+    "declaration": true,
+    "removeComments": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}

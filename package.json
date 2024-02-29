@@ -1,0 +1,21 @@
+{
+  "name": "image-processing-service",
+  "version": "1.0.0",
+  "description": "Service for serving images and dynamically resize them based on parameters received.",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx tsc -p tsconfig.build.json",
+    "start": "node dist/main",
+    "serve:local": "npm run build && npm run start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Dragos Vasile",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.23",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ts-node": "^10.9.2"
+  }
+}
