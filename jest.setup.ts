@@ -1,2 +1,2 @@
-import 'jest-extended'
-jest.setTimeout(10000)
+import "jest-extended";
+jest.setTimeout(10000);

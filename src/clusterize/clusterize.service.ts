@@ -1,6 +1,7 @@
 import cluster from "cluster";
 import os from "os";
-import { ClusterizeConfig } from "./clusterize-config.model";
+
+import { ClusterizeConfig } from "../common/models/clusterize-config.model";
 
 const numOfCPUs = os.cpus().length;
 
@@ -18,7 +19,7 @@ export class ClusterService {
     };
   }
 
-  public getConfig() {
+  public getConfig(): ClusterizeConfig {
     return this.config;
   }
 
@@ -39,7 +40,7 @@ export class ClusterService {
     return done;
   }
 
-  private handleClusterExit(worker: any) {
+  public handleClusterExit(worker: any): void {
     console.log(`Worker ${worker.process.pid} died.`);
   }
 }

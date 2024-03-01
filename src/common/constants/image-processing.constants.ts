@@ -1,0 +1,1 @@
+export const imagesDirectoryPath = "/../../images/";

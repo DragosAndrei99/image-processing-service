@@ -1,19 +1,15 @@
-import http from "http";
+import http, { IncomingMessage, Server, ServerResponse } from "http";
 
-export async function bootstrap() {
-  const PORT = 3000;
-  const server = http.createServer((request, response) => {
-    let body: any = [];
-    request
-      .on("data", (chunk) => {
-        body.push(chunk);
-      })
-      .on("end", () => {
-        body = Buffer.concat(body).toString();
-        response.end(body);
-      });
-  });
+import { PORT } from "./common/constants/server.constants";
+import { reqListener } from "./request-listener/request-listener";
+
+export async function bootstrap(): Promise<
+  Server<typeof IncomingMessage, typeof ServerResponse>
+> {
+  const server: Server = http.createServer(reqListener);
+
   server.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
+  return server;
 }
