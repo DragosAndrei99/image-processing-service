@@ -1,26 +1,37 @@
+import safeStringify from "fast-safe-stringify";
 import fs from "fs";
+import { ServerResponse } from "http";
 import { resolve } from "path";
 import sharp from "sharp";
-import { Duplex } from "stream";
+import { Stream } from "stream";
 import { pipeline } from "stream/promises";
 
 import { imagesDirectoryPath } from "../common/constants/image-processing.constants";
+import { NO_FILE_OR_DIR } from "../common/constants/server.constants";
+import { HttpStatusCode } from "../common/enums/http-status-codes";
 import { ImageRetrievalDTO } from "../common/models/image-retrieval.dto";
 
 class ImageProcessing {
-  async processImage({
-    imageName,
-    searchParams,
-  }: ImageRetrievalDTO): Promise<Duplex | fs.ReadStream> {
+
+  async serveImage(res: ServerResponse, {imageName, searchParams}: ImageRetrievalDTO): Promise<void> {
+    const imageStream = imageProcessingService.getImageStream(imageName)
+    this.handleEmittedErrors(imageStream, res);
+
+    if (searchParams.has("resolution")) {
+      await this.pipeResizedImage(imageStream, res, searchParams);
+    } else {
+      await pipeline(imageStream, res).catch(this.logPipelineErrors);
+    }
+  }
+
+  private getImageStream(
+    imageName: string): fs.ReadStream {
     try {
       const path: string = resolve(`${__dirname}${imagesDirectoryPath}${imageName}`);
-      const readStream: fs.ReadStream = fs.createReadStream(path); // change this to async so it catches err in catch block
-      if (searchParams.has("resolution")) {
-        return await this.resizeImage(searchParams, readStream);
-      }
+      const readStream: fs.ReadStream = fs.createReadStream(path);
       return readStream;
     } catch (error) {
-      console.error("An error occurred while processing the image:", error);
+      console.error("An error occurred while retrieving image path:", error);
       throw new Error(error.message);
     }
   }
@@ -38,20 +49,36 @@ class ImageProcessing {
     return { width, height };
   }
 
-  private async resizeImage(
-    searchParams: URLSearchParams,
+  private async pipeResizedImage(
     readStream: fs.ReadStream,
-  ): Promise<Duplex> {
+    res: ServerResponse,
+    searchParams: URLSearchParams,
+  ): Promise<void> {
     try {
       const { width, height }: {width: number, height: number} = this.getWidthAndHeight(searchParams);
       const transformer: sharp.Sharp = sharp().resize({ width, height });
-      await pipeline(readStream, transformer);
-      console.log("Resize succesful.");
-      return transformer;
+      await pipeline(readStream, transformer, res).catch(this.logPipelineErrors);
     } catch (error) {
       console.error("An error occurred while resizing image", error.message);
       throw new Error(error.message);
     }
+  }
+
+  private logPipelineErrors(err: Error): void {
+    if (err) {
+      console.error('Pipeline failed.', err);
+    } else {
+      console.log('Pipeline succeeded.');
+    }
+  }
+
+  private handleEmittedErrors(stream: Stream, res:ServerResponse): void {
+    stream.on('error', (error) => {
+      res.statusCode = error.message.includes(NO_FILE_OR_DIR) ? HttpStatusCode.NOT_FOUND : HttpStatusCode.INTERNAL_SERVER_ERROR;
+      res.setHeader('Content-Type', 'application/json') ;
+      const response = safeStringify({response: `An error occured: ${error.message}`})
+      res.end(response);
+    });
   }
 }
 
