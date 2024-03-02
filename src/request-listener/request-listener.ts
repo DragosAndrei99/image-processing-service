@@ -9,7 +9,7 @@ export async function reqListener(req: IncomingMessage, res: ServerResponse): Pr
     const parsedUrl = new URL(req.url, `http://${req.headers.host}`)
     const pathName = parsedUrl.pathname
     try {
-        if (req.method === "GET" && pathName.startsWith("/images")) {
+        if (req.method === "GET" && pathName.startsWith("/images")) { // TODO: add validation for search params (maybe implement as a decorator)
             const imageName = path.basename(pathName)
             await imageProcessingService.serveImage(res, {imageName, searchParams: parsedUrl.searchParams});
         } else {

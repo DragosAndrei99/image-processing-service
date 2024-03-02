@@ -1,7 +1,7 @@
 import safeStringify from "fast-safe-stringify";
 import fs from "fs";
 import { ServerResponse } from "http";
-import { resolve } from "path";
+import { parse, resolve } from "path";
 import sharp from "sharp";
 import { Stream } from "stream";
 import { pipeline } from "stream/promises";
@@ -13,13 +13,13 @@ import { ImageRetrievalDTO } from "../common/models/image-retrieval.dto";
 
 class ImageProcessing {
 
-  async serveImage(res: ServerResponse, {imageName, searchParams}: ImageRetrievalDTO): Promise<void> {
+  async serveImage(res: ServerResponse, { imageName, searchParams }: ImageRetrievalDTO): Promise<void> {
     try {
       const imageStream = imageProcessingService.getImageStream(imageName)
       this.handleEmittedErrors(imageStream, res);
 
       if (searchParams.has("resolution")) {
-        await this.pipeResizedImage(imageStream, res, searchParams);
+        await this.pipeResizedImage(imageStream, res, { imageName, searchParams });
       } else {
         await pipeline(imageStream, res).catch(this.logPipelineErrors);
       }
@@ -42,16 +42,38 @@ class ImageProcessing {
     }
   }
 
+  private async isCachedImage(imageName: string, { width, height }: { width: number, height: number }): Promise<boolean> {
+    try {
+      await fs.promises.access(`${__dirname}${imagesDirectoryPath}${parse(imageName).name}_${width}_${height}.jpg`, fs.constants.F_OK)
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   private async pipeResizedImage(
     readStream: fs.ReadStream,
     res: ServerResponse,
-    searchParams: URLSearchParams,
+    { imageName, searchParams }: ImageRetrievalDTO,
   ): Promise<void> {
     try {
-      const { width, height }: {width: number, height: number} = this.getWidthAndHeight(searchParams);
-      const transformer: sharp.Sharp = sharp().resize({ width, height });
-      this.handleEmittedErrors(transformer, res);
-      await pipeline(readStream, transformer, res).catch(this.logPipelineErrors);
+      const { width, height }: { width: number, height: number } = this.getWidthAndHeight(searchParams);
+      /* Moved cache control logic to be executed here because did not want to always call isCachedImage method in the serveImage method since
+      if NO search param provided means that user is looking for original image that should either exist or not ( nothing to do with cached images )
+      TODO: Might want to rethink this by taking in account how expensive is fs.promises.access call vs creating a readStream and destroying it after */
+      if (await this.isCachedImage(imageName, { width, height })) {
+        console.log('Trying to use cached image...')
+        const cachedReadStream = this.getImageStream(`${parse(imageName).name}_${width}_${height}.jpg`)
+        await pipeline(cachedReadStream, res).catch(this.logPipelineErrors);
+        readStream.destroy();
+      } else {
+        console.log('Trying to resize image and caching it...')
+        const transformer: sharp.Sharp = sharp().resize({ width, height });
+        this.handleEmittedErrors(transformer, res);
+        await pipeline(readStream, transformer, res).catch(this.logPipelineErrors);
+        // saving image in memory
+        transformer.toFile(`images/${parse(imageName).name}_${width}_${height}.jpg`)
+      }
     } catch (error) {
       console.error("An error occurred while resizing image", error.message);
       throw new Error(error.message);
@@ -77,12 +99,12 @@ class ImageProcessing {
     }
   }
 
-  private handleEmittedErrors(stream: Stream, res:ServerResponse): void {
+  private handleEmittedErrors(stream: Stream, res: ServerResponse): void {
     stream.on('error', (error) => {
-      if(!res.headersSent) {
+      if (!res.headersSent) {
         const statusCode = error.message.includes(NO_FILE_OR_DIR) ? HttpStatusCode.NOT_FOUND : HttpStatusCode.INTERNAL_SERVER_ERROR;
-        res.writeHead(statusCode, {'Content-Type': 'application/json'})
-        const response = safeStringify({response: `An error occured: ${error.message}`})
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' })
+        const response = safeStringify({ response: `An error occured: ${error.message}` })
         res.end(response);
       }
     });
