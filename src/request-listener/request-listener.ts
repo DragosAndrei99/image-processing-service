@@ -2,7 +2,6 @@ import safeStringify from "fast-safe-stringify";
 import { IncomingMessage, ServerResponse } from "http";
 import path from "path";
 
-import { NO_FILE_OR_DIR } from "../common/constants/server.constants";
 import { HttpStatusCode } from "../common/enums/http-status-codes";
 import { imageProcessingService } from "../image-processing/image-processing.service";
 
@@ -19,7 +18,7 @@ export async function reqListener(req: IncomingMessage, res: ServerResponse): Pr
         }
     } catch (error) {
         console.error('An error occurred:', error);
-        res.statusCode = error.message.includes(NO_FILE_OR_DIR) ? HttpStatusCode.NOT_FOUND : HttpStatusCode.INTERNAL_SERVER_ERROR;
+        res.statusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
         const response = safeStringify({response: `An error occured: ${error.message}`})
         res.end(response);
     }

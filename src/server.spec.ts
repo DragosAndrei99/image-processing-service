@@ -1,27 +1,25 @@
-import { AddressInfo, Server } from "net";
+import * as http from 'http';
 
-import { PORT } from "./common/constants/server.constants";
+import { bootstrap } from './server'; // Import the function to be tested
 
+jest.mock('http', () => ({
+  createServer: jest.fn(() => ({
+    listen: jest.fn((_port, callback) => callback())
+  }))
+}));
 
-describe('Image Processing Service Server', () => {
-    let server: Server;
-    let addressInfo: AddressInfo;
-    let port: number;
-    beforeAll(async () => {
-        server = await require('./server').bootstrap();
-    })
-    afterAll((done) => {
-        server.close(done)
-        jest.resetModules();
-    })
+describe('bootstrap', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    beforeEach(() => {
-        addressInfo = server.address() as AddressInfo;
-        port = Number(addressInfo.port)
-    })
+  it('should create a server and listen on the specified port', async () => {
+    const PORT = 3000;
 
-    it('Should listen on given port', () => {
-        expect(port).toEqual(PORT)
-    })
+    const server = await bootstrap();
 
-})
+    expect(http.createServer).toHaveBeenCalledWith(expect.any(Function));
+    expect(server.listen).toHaveBeenCalledWith(PORT, expect.any(Function));
+  });
+
+});
