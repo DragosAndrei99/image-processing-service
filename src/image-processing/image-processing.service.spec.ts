@@ -1,5 +1,8 @@
+/* eslint-disable max-statements-per-line */
+
 import safeStringify from "fast-safe-stringify";
 import fs, { ReadStream } from "fs";
+import * as fs_promises from 'fs/promises'
 import { ServerResponse } from "http"
 import path from "path";
 import { Stream } from "stream";
@@ -9,8 +12,10 @@ import { HttpStatusCode } from "../common/enums/http-status-codes";
 import { imageProcessingService } from "./image-processing.service"
 
 const mockSharpStream = new Stream();
+mockSharpStream['toFile'] = jest.fn();
 
 jest.mock('fs')
+jest.mock('fs/promises')
 jest.mock('sharp', () => jest.fn(() => ({
     resize: jest.fn().mockReturnValue(mockSharpStream),
     jpeg: jest.fn().mockReturnThis(),
@@ -18,7 +23,10 @@ jest.mock('sharp', () => jest.fn(() => ({
 })))
 jest.mock('stream/promises')
 jest.mock('path', () => ({
-    resolve: jest.fn()
+    resolve: jest.fn(),
+    parse: jest.fn().mockImplementation(() => ({
+        name: 'image'
+    }))
 }))
 
 describe('Image processing service', () => {
@@ -30,10 +38,11 @@ describe('Image processing service', () => {
         statusCode: 200,
         setHeader: jest.fn()
     } as unknown as ServerResponse
-    let createReadStreamSpy: jest.SpyInstance;
     const mockReadStream = new Stream() as unknown as ReadStream;
+    let fsAccessSpy: jest.SpyInstance;
+    let createReadStreamSpy: jest.SpyInstance;
     let pipelineSpy: jest.SpyInstance;
-    let pathSpy: jest.SpyInstance;
+    let pathResolveSpy: jest.SpyInstance;
     beforeEach(() => {
         jest.clearAllMocks();
     })
@@ -42,21 +51,36 @@ describe('Image processing service', () => {
             jest.clearAllMocks();
             createReadStreamSpy = jest.spyOn(fs, 'createReadStream')
             pipelineSpy = jest.spyOn(stream_promises, 'pipeline')
-            pathSpy = jest.spyOn(path, 'resolve')
+            pathResolveSpy = jest.spyOn(path, 'resolve')
+            fsAccessSpy = jest.spyOn(fs_promises, 'access')
         })
-        it('Should pipe resized image stream to response', async () => {
-            pathSpy.mockReturnValue('/test')
+        it('Should resize image and pipe it to response', async () => {
+            fsAccessSpy.mockImplementation(() => { throw new Error('signaling that file has not been found') })
+            pathResolveSpy.mockReturnValue('/test')
             createReadStreamSpy.mockReturnValue(mockReadStream)
             pipelineSpy.mockReturnValue({ catch: jest.fn() })
             await imageProcessingService.serveImage(mockRes, { imageName, searchParams })
             expect(createReadStreamSpy).toHaveBeenCalled()
             expect(pipelineSpy).toHaveBeenCalledWith(mockReadStream, mockSharpStream, mockRes)
+            expect(mockSharpStream['toFile']).toHaveBeenCalledWith('images/image_400_400.jpg')
         })
+
+        it('Should use cached resized image and pipe it to response', async () => {
+            fsAccessSpy.mockReturnValue(null)
+            pathResolveSpy.mockReturnValue('/test')
+            mockReadStream['destroy'] = jest.fn()
+            createReadStreamSpy.mockReturnValue(mockReadStream)
+            pipelineSpy.mockReturnValue({ catch: jest.fn() })
+            await imageProcessingService.serveImage(mockRes, { imageName, searchParams })
+            expect(createReadStreamSpy).toHaveBeenCalled()
+            expect(pipelineSpy).toHaveBeenCalledWith(mockReadStream, mockRes)
+            expect(mockReadStream['destroy']).toHaveBeenCalledTimes(1)
+        })
+
 
         it('Should throw error when path resolve fails', async () => {
             try {
-                // eslint-disable-next-line max-statements-per-line
-                pathSpy.mockImplementation(() => { throw new Error('test') })
+                pathResolveSpy.mockImplementation(() => { throw new Error('test') })
                 await imageProcessingService.serveImage(mockRes, { imageName, searchParams })
                 fail('Never to reach')
             } catch (error) {
@@ -66,9 +90,8 @@ describe('Image processing service', () => {
 
         it('Should throw error when resize image pipeline fails', async () => {
             try {
-                pathSpy.mockReturnValue('/test')
+                pathResolveSpy.mockReturnValue('/test')
                 createReadStreamSpy.mockReturnValue(mockReadStream)
-                // eslint-disable-next-line max-statements-per-line
                 pipelineSpy.mockImplementation(() => { throw new Error('test') })
                 await imageProcessingService.serveImage(mockRes, { imageName, searchParams })
                 fail('Never to reach')
@@ -85,10 +108,10 @@ describe('Image processing service', () => {
             mockSharpStream.removeAllListeners();
             createReadStreamSpy = jest.spyOn(fs, 'createReadStream')
             pipelineSpy = jest.spyOn(stream_promises, 'pipeline')
-            pathSpy = jest.spyOn(path, 'resolve')
+            pathResolveSpy = jest.spyOn(path, 'resolve')
         })
         it('Should pipe image stream to response', async () => {
-            pathSpy.mockReturnValue('/test')
+            pathResolveSpy.mockReturnValue('/test')
             createReadStreamSpy.mockReturnValue(mockReadStream)
             pipelineSpy.mockReturnValue({ catch: jest.fn() })
             await imageProcessingService.serveImage(mockRes, { imageName, searchParams: new URLSearchParams('') })
@@ -104,7 +127,7 @@ describe('Image processing service', () => {
             const mockErr = {
                 message: mockErrMessage
             }
-            pathSpy.mockReturnValue('/test')
+            pathResolveSpy.mockReturnValue('/test')
             createReadStreamSpy.mockReturnValue(mockReadStream)
             pipelineSpy.mockReturnValue({ catch: jest.fn() })
             await imageProcessingService.serveImage({ ...mockRes, headersSent: false } as unknown as ServerResponse, { imageName, searchParams: new URLSearchParams('') })

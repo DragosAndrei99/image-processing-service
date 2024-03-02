@@ -1,5 +1,6 @@
 import safeStringify from "fast-safe-stringify";
 import fs from "fs";
+import { access } from "fs/promises";
 import { ServerResponse } from "http";
 import { parse, resolve } from "path";
 import sharp from "sharp";
@@ -44,7 +45,7 @@ class ImageProcessing {
 
   private async isCachedImage(imageName: string, { width, height }: { width: number, height: number }): Promise<boolean> {
     try {
-      await fs.promises.access(`${__dirname}${imagesDirectoryPath}${parse(imageName).name}_${width}_${height}.jpg`, fs.constants.F_OK)
+      await access(`${__dirname}${imagesDirectoryPath}${parse(imageName).name}_${width}_${height}.jpg`, fs.constants.F_OK)
       return true;
     } catch (error) {
       return false;
@@ -72,7 +73,8 @@ class ImageProcessing {
         this.handleEmittedErrors(transformer, res);
         await pipeline(readStream, transformer, res).catch(this.logPipelineErrors);
         // saving image in memory
-        transformer.toFile(`images/${parse(imageName).name}_${width}_${height}.jpg`)
+        transformer.toFile(`images/${parse(imageName).name}_${width}_${height}.jpg`) 
+        // TODO: Create a worker that deletes cached images after a certain time based on image data-modified metadata
       }
     } catch (error) {
       console.error("An error occurred while resizing image", error.message);
