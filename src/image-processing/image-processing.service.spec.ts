@@ -62,7 +62,7 @@ describe('Image processing service', () => {
             await imageProcessingService.serveImage(mockRes, { imageName, searchParams })
             expect(createReadStreamSpy).toHaveBeenCalled()
             expect(pipelineSpy).toHaveBeenCalledWith(mockReadStream, mockSharpStream, mockRes)
-            expect(mockSharpStream['toFile']).toHaveBeenCalledWith('images/image_400_400.jpg')
+            expect(mockSharpStream['toFile']).toHaveBeenCalledWith('images/cached/image_400_400.jpg')
         })
 
         it('Should use cached resized image and pipe it to response', async () => {

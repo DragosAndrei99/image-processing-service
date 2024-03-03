@@ -1,6 +1,5 @@
 import { ClusterService } from "./clusterize/clusterize.service";
 
-
 describe('Image Processing Service', () => {
     let serverBootstrapFn: Function;
     let clusterizeSpy: jest.SpyInstance;

@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { Stream } from "stream";
 import { pipeline } from "stream/promises";
 
-import { imagesDirectoryPath } from "../common/constants/image-processing.constants";
+import { cachedImagesDirectoryPath, imagesDirectoryPath } from "../common/constants/image-processing.constants";
 import { NO_FILE_OR_DIR } from "../common/constants/server.constants";
 import { HttpStatusCode } from "../common/enums/http-status-codes";
 import { ImageRetrievalDTO } from "../common/models/image-retrieval.dto";
@@ -16,7 +16,7 @@ class ImageProcessing {
 
   async serveImage(res: ServerResponse, { imageName, searchParams }: ImageRetrievalDTO): Promise<void> {
     try {
-      const imageStream = imageProcessingService.getImageStream(imageName)
+      const imageStream = imageProcessingService.getImageStream(imageName, imagesDirectoryPath)
       this.handleEmittedErrors(imageStream, res);
 
       if (searchParams.has("resolution")) {
@@ -32,9 +32,10 @@ class ImageProcessing {
   }
 
   private getImageStream(
-    imageName: string): fs.ReadStream {
+    imageName: string,
+    dirPath: string): fs.ReadStream {
     try {
-      const path: string = resolve(`${__dirname}${imagesDirectoryPath}${imageName}`);
+      const path: string = resolve(`${__dirname}${dirPath}${imageName}`);
       const readStream: fs.ReadStream = fs.createReadStream(path);
       return readStream;
     } catch (error) {
@@ -45,7 +46,7 @@ class ImageProcessing {
 
   private async isCachedImage(imageName: string, { width, height }: { width: number, height: number }): Promise<boolean> {
     try {
-      await access(`${__dirname}${imagesDirectoryPath}${parse(imageName).name}_${width}_${height}.jpg`, fs.constants.F_OK)
+      await access(`${__dirname}${cachedImagesDirectoryPath}${parse(imageName).name}_${width}_${height}.jpg`, fs.constants.F_OK)
       return true;
     } catch (error) {
       return false;
@@ -64,7 +65,7 @@ class ImageProcessing {
       TODO: Might want to rethink this by taking in account how expensive is fs.promises.access call vs creating a readStream and destroying it after */
       if (await this.isCachedImage(imageName, { width, height })) {
         console.log('Trying to use cached image...')
-        const cachedReadStream = this.getImageStream(`${parse(imageName).name}_${width}_${height}.jpg`)
+        const cachedReadStream = this.getImageStream(`${parse(imageName).name}_${width}_${height}.jpg`, cachedImagesDirectoryPath)
         await pipeline(cachedReadStream, res).catch(this.logPipelineErrors);
         readStream.destroy();
       } else {
@@ -73,8 +74,7 @@ class ImageProcessing {
         this.handleEmittedErrors(transformer, res);
         await pipeline(readStream, transformer, res).catch(this.logPipelineErrors);
         // saving image in memory
-        transformer.toFile(`images/${parse(imageName).name}_${width}_${height}.jpg`) 
-        // TODO: Create a worker that deletes cached images after a certain time based on image data-modified metadata
+        transformer.toFile(`images/cached/${parse(imageName).name}_${width}_${height}.jpg`) 
       }
     } catch (error) {
       console.error("An error occurred while resizing image", error.message);

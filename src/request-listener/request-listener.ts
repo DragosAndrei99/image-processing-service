@@ -18,7 +18,7 @@ export async function reqListener(req: IncomingMessage, res: ServerResponse): Pr
         }
     } catch (error) {
         console.error('An error occurred:', error);
-        res.statusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
+        res.writeHead(HttpStatusCode.INTERNAL_SERVER_ERROR, { "Content-Type": "application/json" });
         const response = safeStringify({response: `An error occured: ${error.message}`})
         res.end(response);
     }
