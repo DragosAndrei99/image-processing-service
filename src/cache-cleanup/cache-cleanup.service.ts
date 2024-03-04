@@ -26,7 +26,7 @@ class CacheCleanupService {
             currentTime - new Date(modifiedTime).getTime();
           if (timeElapsed >= this.cacheImagesTtl) {
             console.log(
-              `Time elapsed for image ${filePath} is ${timeElapsed} and is less than TTL ${this.cacheImagesTtl}`,
+              `Time elapsed for image ${filePath} is ${timeElapsed} and global TTL for images is: ${this.cacheImagesTtl}`,
             );
             return this.deleteImage(filePath);
           }
