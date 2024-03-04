@@ -77,7 +77,7 @@ class ImageProcessing {
         this.getWidthAndHeight(searchParams);
       /* Moved cache control logic to be executed here because did not want to always call isCachedImage method in the serveImage method since
       if NO search param provided means that user is looking for original image that should either exist or not ( nothing to do with cached images )
-      TODO: Might want to rethink this by taking in account how expensive is fs.promises.access call vs creating a readStream and destroying it after */
+      Might want to rethink this by taking in account how expensive is fs.promises.access call vs creating a readStream and destroying it after */
       if (await this.isCachedImage(imageName, { width, height })) {
         console.log("Trying to use cached image...");
         const cachedReadStream = this.getImageStream(
