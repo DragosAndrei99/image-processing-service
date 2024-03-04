@@ -62,3 +62,27 @@ plant-317902.jpg \
     $ npm run test:integration
 
 ### At the moment, this project only supports images with .jpg extension
+
+## Demo:
+
+App is boostrapping , creating a worker thread and clustering 16 processes:
+![alt text](readme_resources/clusters_and_worker_thread.png)
+
+
+GET localhost:3000/images/plant-317902.jpg call from postman:
+![alt text](readme_resources/GET_original_image.png)
+
+GET localhost:3000/images/plant-317902.jpg?resolution=200x200 call from postman:
+
+![alt text](readme_resources/GET_resized_image.png)
+
+Image is saved in cache:
+![alt text](readme_resources/image_saved_in_cache.png)
+
+Cleanup task starting on thread 1, calculating if image is valid for deletion and deleting it:
+![alt text](readme_resources/resizing_and_cleanup.png)
+
+
+
+
+

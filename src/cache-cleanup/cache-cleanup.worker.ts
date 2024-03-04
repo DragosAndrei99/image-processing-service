@@ -2,7 +2,7 @@ import cluster from "cluster";
 import schedule from "node-schedule";
 import { isMainThread, Worker } from "worker_threads";
 
-import { runEvery10Seconds } from "../common/constants/cache.constants";
+import { runEvery30Seconds } from "../common/constants/cache.constants";
 import { cacheCleanupService } from "./cache-cleanup.service";
 
 /* Spawns a worker thread on the main cluster
@@ -23,7 +23,7 @@ if (cluster.isPrimary) {
     });
   } else {
     // task scheduled to run every 10 seconds for demonstration purposes
-    schedule.scheduleJob(runEvery10Seconds, (): void => {
+    schedule.scheduleJob(runEvery30Seconds, (): void => {
       cacheCleanupService.runImageBatchCleanup();
     });
   }

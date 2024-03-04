@@ -4,6 +4,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import { HttpStatusCode } from "../common/enums/http-status-codes";
 import { imageProcessingService } from "../image-processing/image-processing.service";
 
+// eslint-disable-next-line complexity
 export async function reqListener(
   req: IncomingMessage,
   res: ServerResponse,

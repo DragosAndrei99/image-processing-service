@@ -35,7 +35,6 @@ class ImageProcessing {
       } else {
         await pipeline(imageStream, res).catch(this.logPipelineErrors);
       }
-      console.log("Pipeline succesful."); // TODO: to be removed
     } catch (error) {
       console.error("An error occurred while serving image:", error);
       throw new Error(error.message);
