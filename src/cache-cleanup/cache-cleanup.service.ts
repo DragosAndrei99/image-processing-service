@@ -1,24 +1,42 @@
 import fs from "fs";
+import { threadId } from "worker_threads";
 
-import { cacheImagesTtl } from '../common/constants/cache.constants';
-
+import { cacheImagesTtl } from "../common/constants/cache.constants";
+import { cachedImagesDirectoryPath } from "../common/constants/image-processing.constants";
 
 class CacheCleanupService {
   private cacheImagesTtl: number;
-  constructor(cacheImagesTtl: number) {
-    this.cacheImagesTtl = cacheImagesTtl
+  private cachedDirPath: string;
+  constructor(cacheImagesTtl: number, cachedDirPath: string) {
+    this.cacheImagesTtl = cacheImagesTtl;
+    this.cachedDirPath = cachedDirPath;
   }
 
-  runImageBatchCleanup(modifiedTime: Date, filePath: string): Promise<void> {
-    const currentTime: number = new Date().getTime();
-    const timeElapsed: number = currentTime - new Date(modifiedTime).getTime();
+  runImageBatchCleanup(): void {
+    console.log(`Cache cleanup task has started on thread ${threadId}`);
 
-    if (timeElapsed >= cacheImagesTtl) {
-      return this.deleteImage(filePath)
-    }
+    const allImages = fs.readdirSync(this.cachedDirPath);
+    allImages.forEach((file) => {
+      const filePath = `${this.cachedDirPath}${file}`;
+      cacheCleanupService
+        .getImageModifiedTime(filePath)
+        .then((modifiedTime) => {
+          const currentTime: number = new Date().getTime();
+          const timeElapsed: number =
+            currentTime - new Date(modifiedTime).getTime();
+
+          if (timeElapsed >= this.cacheImagesTtl) {
+            return this.deleteImage(filePath);
+          }
+        })
+        .catch((err) => {
+          console.error("Error has occured when deleting images: " + err);
+        });
+    });
+    console.log(`Cache cleanup task finished on thread ${threadId}`);
   }
 
-  getImageModifiedTime(filePath: string): Promise<Date> {
+  private getImageModifiedTime(filePath: string): Promise<Date> {
     return new Promise((resolve, reject) => {
       fs.stat(filePath, (err, stats) => {
         if (err) {
@@ -30,13 +48,13 @@ class CacheCleanupService {
     });
   }
 
-  deleteImage(filePath: string): Promise<void> {
+  private deleteImage(filePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       fs.unlink(filePath, (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log(`File ${filePath} has been deleted.`)
+          console.log(`File ${filePath} has been deleted.`);
           resolve();
         }
       });
@@ -44,4 +62,7 @@ class CacheCleanupService {
   }
 }
 
-export const cacheCleanupService = new CacheCleanupService(cacheImagesTtl);
+export const cacheCleanupService = new CacheCleanupService(
+  cacheImagesTtl,
+  `${__dirname}${cachedImagesDirectoryPath}`,
+);

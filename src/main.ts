@@ -1,4 +1,4 @@
-import "./cache-cleanup/cache-cleanup.worker"
+import "./cache-cleanup/cache-cleanup.worker";
 
 import { ClusterService } from "./clusterize/clusterize.service";
 import { bootstrap } from "./server";

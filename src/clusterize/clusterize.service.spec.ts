@@ -9,7 +9,7 @@ const mockConfig: ClusterizeConfig = {
 
 describe("Cluster Service", () => {
   let mockCb: Function;
-  let loggerSpy: jest.SpyInstance
+  let loggerSpy: jest.SpyInstance;
   beforeAll(() => {
     jest.mock("cluster");
     cluster.on = jest.fn();
@@ -17,15 +17,15 @@ describe("Cluster Service", () => {
   });
 
   beforeEach(() => {
-    loggerSpy = jest.spyOn(global.console, 'log');
+    loggerSpy = jest.spyOn(global.console, "log");
     mockCb = jest.fn().mockResolvedValue(cbVal);
   });
 
-  it("Should create workers matching configuration given from master process",async () => {
+  it("Should create workers matching configuration given from master process", async () => {
     cluster.isPrimary = true;
     const clusterService = new ClusterService(mockConfig);
     await clusterService.clusterize(mockCb);
-    expect(jest.spyOn(cluster, 'fork')).toHaveBeenCalled()
+    expect(jest.spyOn(cluster, "fork")).toHaveBeenCalled();
     expect(clusterService.getConfig().numberOfWorkers).toEqual(1);
   });
 
@@ -39,7 +39,7 @@ describe("Cluster Service", () => {
   it("Should execute given callback from child processes", () => {
     cluster.isPrimary = true;
     const clusterService = new ClusterService(mockConfig);
-    clusterService.handleClusterExit({process: {pid: '123'}});
-    expect(loggerSpy).toHaveBeenCalledWith(`Worker 123 died.`)
+    clusterService.handleClusterExit({ process: { pid: "123" } });
+    expect(loggerSpy).toHaveBeenCalledWith(`Worker 123 died.`);
   });
 });
