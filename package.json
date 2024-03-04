@@ -8,6 +8,7 @@
     "start": "node --trace-warnings dist/main",
     "serve:local": "npm run build && npm run start",
     "test:unit": "jest --coverage --no-cache",
+    "test:integration": "jest --runInBand --config jest.integration.config.js --no-cache --coverage",
     "format": "prettier --write -- \"**/*.{js,json,md,ts}\"",
     "lint": "eslint --ignore-path .gitignore --ext .ts --fix"
   },
@@ -32,7 +33,10 @@
     "jest-extended": "^4.0.2",
     "jest-html-reporter": "^3.10.2",
     "jest-junit": "^16.0.0",
+    "mockserver-client": "^5.15.0",
+    "mockserver-node": "^5.15.0",
     "prettier": "^3.2.5",
+    "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

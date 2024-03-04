@@ -22,7 +22,12 @@
   },
   "overrides": [
     {
-      "files": ["*.spec.ts", "jest.setup.ts", "jest.config.js"],
+      "files": [
+        "*.spec.ts",
+        "jest.setup.ts",
+        "jest.config.js",
+        "jest.integration.config.js"
+      ],
       "rules": {
         "@typescript-eslint/no-magic-numbers": "off",
         "jsdoc/require-description": "off",

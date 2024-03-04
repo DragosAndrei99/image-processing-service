@@ -3,7 +3,7 @@ module.exports = {
   testEnvironment: "node",
   setupFilesAfterEnv: ["jest-extended/all", "./jest.setup.ts"],
   coverageDirectory: "reports/coverage/unit",
-  testPathIgnorePatterns: ["/dist/", "/node_modules/"],
+  testPathIgnorePatterns: ["/dist/", "/node_modules/", "/integration/"],
   collectCoverageFrom: ["src/**/*.ts"],
   coverageThreshold: {
     global: {
