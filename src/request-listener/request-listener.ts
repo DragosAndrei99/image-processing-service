@@ -4,7 +4,6 @@ import { IncomingMessage, ServerResponse } from "http";
 import { HttpStatusCode } from "../common/enums/http-status-codes";
 import { imageProcessingService } from "../image-processing/image-processing.service";
 
-// eslint-disable-next-line complexity
 export async function reqListener(
   req: IncomingMessage,
   res: ServerResponse,
@@ -13,7 +12,6 @@ export async function reqListener(
   const pathArr: string[] = parsedUrl.pathname.split("/").slice(1);
   try {
     if (req.method === "GET" && pathArr[0] === "images") {
-      // TODO: add validation for search params
       const imageName = pathArr[1];
       await imageProcessingService.serveImage(res, {
         imageName,
